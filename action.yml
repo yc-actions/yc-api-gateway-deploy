@@ -1,0 +1,30 @@
+name: 'YC API Gateway Deploy'
+description: 'GitHub Action to deploy API Gateway to Yandex Cloud'
+author: 'Andrei Khaliullin'
+inputs:
+  yc-sa-json-credentials:
+    required: true
+    description: 'Json containing authorized key for Service Account'
+  gateway-name:
+    required: true
+    description: 'API Gateway name'
+  folder-id:
+    required: true
+    description: 'Folder ID'
+  spec:
+    required: false
+    description: "YAML or JSON specification of API Gateway. Either spec or spec-file must be provided"
+  spec-file:
+    required: false
+    description: "Path to file with YAML or JSON specification of API Gateway. Either spec or spec-file must be provided"
+outputs:
+  id:
+    description: 'Id of API Gateway'
+  domain:
+    description: 'Domain of API Gateway'
+branding:
+  color: blue
+  icon: upload-cloud
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
