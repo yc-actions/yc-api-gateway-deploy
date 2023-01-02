@@ -28,7 +28,7 @@
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.1",
     "@nikolay.matrosov/yc-ts-sdk": "^1.6.4",
-    "yaml": "^2.2.0"
+    "yaml": "^2.2.1"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
