@@ -19,7 +19,7 @@ Create an API Gateway with the provided name if there is no one, or udpate exist
 ```yaml
       - name: Deploy API Gateway
         id: deploy-gateway
-        uses: yc-actions/yc-api-gateway-deploy@v2.0.0
+        uses: yc-actions/yc-api-gateway-deploy@v2
         with:
           yc-sa-json-credentials: ${{ secrets.YC_SA_JSON_CREDENTIALS }}
           gateway-name: yc-action-demo
