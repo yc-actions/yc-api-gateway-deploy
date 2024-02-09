@@ -1,5 +1,7 @@
 ## GitHub Action to deploy API Gateway to Yandex Cloud
 
+[![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
+
 Create an API Gateway with the provided name if there is no one, or udpate existing gateway's specification
 
 **Table of Contents**
