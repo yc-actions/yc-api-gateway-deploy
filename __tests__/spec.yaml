@@ -1,0 +1,21 @@
+openapi: 3.0.3
+info:
+  title: My service
+  description: My service
+  version: 1.0.0
+servers:
+  - url: 'https://'
+paths:
+  /:
+    get:
+      responses:
+        '200':
+          description: OK
+      security:
+        - bearerAuth: []
+    post:
+      responses:
+        '200':
+          description: OK
+      security:
+        - bearerAuth: []
