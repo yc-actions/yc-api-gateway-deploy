@@ -1,127 +1,127 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
-import {decodeMessage, serviceClients, Session, waitForOperation} from '@yandex-cloud/nodejs-sdk'
-import {FieldMask} from '@yandex-cloud/nodejs-sdk/dist/generated/google/protobuf/field_mask'
-import {ApiGateway} from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/apigateway/v1/apigateway'
+import { decodeMessage, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
+import { FieldMask } from '@yandex-cloud/nodejs-sdk/dist/generated/google/protobuf/field_mask'
+import { ApiGateway } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/apigateway/v1/apigateway'
 import {
-  ApiGatewayServiceService,
-  CreateApiGatewayRequest,
-  ListApiGatewayRequest,
-  ListApiGatewayResponse,
-  UpdateApiGatewayRequest
+    ApiGatewayServiceService,
+    CreateApiGatewayRequest,
+    ListApiGatewayRequest,
+    ListApiGatewayResponse,
+    UpdateApiGatewayRequest
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/apigateway/v1/apigateway_service'
-import {WrappedServiceClientType} from '@yandex-cloud/nodejs-sdk/dist/types'
+import { WrappedServiceClientType } from '@yandex-cloud/nodejs-sdk/dist/types'
 import * as fs from 'fs'
-import {fromServiceAccountJsonFile} from './service-account-json'
+import { fromServiceAccountJsonFile } from './service-account-json'
 
 async function findGatewayByName(
-  gatewayService: WrappedServiceClientType<typeof ApiGatewayServiceService>,
-  folderId: string,
-  gatewayName: string
+    gatewayService: WrappedServiceClientType<typeof ApiGatewayServiceService>,
+    folderId: string,
+    gatewayName: string
 ): Promise<ListApiGatewayResponse> {
-  return await gatewayService.list(
-    ListApiGatewayRequest.fromPartial({
-      pageSize: 100,
-      folderId,
-      filter: `name = "${gatewayName}"`
-    })
-  )
+    return await gatewayService.list(
+        ListApiGatewayRequest.fromPartial({
+            pageSize: 100,
+            folderId,
+            filter: `name = "${gatewayName}"`
+        })
+    )
 }
 
 async function createGateway(
-  session: Session,
-  gatewayService: WrappedServiceClientType<typeof ApiGatewayServiceService>,
-  folderId: string,
-  gatewayName: string,
-  gatewaySpec: string
+    session: Session,
+    gatewayService: WrappedServiceClientType<typeof ApiGatewayServiceService>,
+    folderId: string,
+    gatewayName: string,
+    gatewaySpec: string
 ): Promise<ApiGateway> {
-  const repo = github.context.repo
-  const request = CreateApiGatewayRequest.fromPartial({
-    folderId,
-    name: gatewayName,
-    description: `Created from: ${repo.owner}/${repo.repo}`,
-    openapiSpec: gatewaySpec
-  })
+    const repo = github.context.repo
+    const request = CreateApiGatewayRequest.fromPartial({
+        folderId,
+        name: gatewayName,
+        description: `Created from: ${repo.owner}/${repo.repo}`,
+        openapiSpec: gatewaySpec
+    })
 
-  const operation = await gatewayService.create(request)
-  await waitForOperation(operation, session)
-  if (!operation.response) {
-    throw operation.error
-  }
-  return decodeMessage<ApiGateway>(operation.response)
+    const operation = await gatewayService.create(request)
+    await waitForOperation(operation, session)
+    if (!operation.response) {
+        throw new Error(operation.error?.message || 'Failed to create gateway')
+    }
+    return decodeMessage<ApiGateway>(operation.response)
 }
 
 async function updateGatewaySpec(
-  session: Session,
-  gatewayService: WrappedServiceClientType<typeof ApiGatewayServiceService>,
-  gatewayId: string,
-  gatewaySpec: string
+    session: Session,
+    gatewayService: WrappedServiceClientType<typeof ApiGatewayServiceService>,
+    gatewayId: string,
+    gatewaySpec: string
 ): Promise<ApiGateway> {
-  const request = UpdateApiGatewayRequest.fromPartial({
-    apiGatewayId: gatewayId,
-    openapiSpec: gatewaySpec,
-    updateMask: FieldMask.fromPartial({
-      paths: ['openapi_spec']
+    const request = UpdateApiGatewayRequest.fromPartial({
+        apiGatewayId: gatewayId,
+        openapiSpec: gatewaySpec,
+        updateMask: FieldMask.fromPartial({
+            paths: ['openapi_spec']
+        })
     })
-  })
 
-  const operation = await gatewayService.update(request)
-  await waitForOperation(operation, session)
-  if (!operation.response) {
-    throw operation.error
-  }
-  return decodeMessage<ApiGateway>(operation.response)
+    const operation = await gatewayService.update(request)
+    await waitForOperation(operation, session)
+    if (!operation.response) {
+        throw new Error(operation.error?.message || 'Failed to update gateway')
+    }
+    return decodeMessage<ApiGateway>(operation.response)
 }
 
-async function run(): Promise<void> {
-  try {
-    core.info(`start`)
-    const ycSaJsonCredentials = core.getInput('yc-sa-json-credentials', {
-      required: true
-    })
+export async function run(): Promise<void> {
+    try {
+        core.info(`start`)
+        const ycSaJsonCredentials = core.getInput('yc-sa-json-credentials', {
+            required: true
+        })
 
-    const folderId: string = core.getInput('folder-id', {
-      required: true
-    })
-    const gatewayName: string = core.getInput('gateway-name', {
-      required: true
-    })
-    let gatewaySpec: string
-    const gatewaySpecFile = core.getInput('spec-file')
-    if (gatewaySpecFile) {
-      gatewaySpec = fs.readFileSync(gatewaySpecFile).toString()
-    } else {
-      gatewaySpec = core.getInput('spec', {
-        required: true
-      })
-    }
-    core.info(`Folder ID: ${folderId}, gateway name: ${gatewayName}`)
+        const folderId: string = core.getInput('folder-id', {
+            required: true
+        })
+        const gatewayName: string = core.getInput('gateway-name', {
+            required: true
+        })
+        const gatewaySpecFile = core.getInput('spec-file')
+        let gatewaySpec = core.getInput('spec')
 
-    const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
-    const session = new Session({serviceAccountJson})
-    const gatewayService = session.client(serviceClients.ApiGatewayServiceClient)
+        if (!gatewaySpec && !gatewaySpecFile) {
+            core.setFailed(new Error('Either spec or spec-file input must be provided'))
+            return
+        }
 
-    const gatewaysResponse = await findGatewayByName(gatewayService, folderId, gatewayName)
-    let gateway: ApiGateway
-    if (gatewaysResponse.apiGateways.length) {
-      gateway = gatewaysResponse.apiGateways[0]
-      core.info(`Gateway with name: ${gatewayName} already exists and has id: ${gateway.id}`)
-      gateway = await updateGatewaySpec(session, gatewayService, gateway.id, gatewaySpec)
-      core.info(`Gateway updated successfully`)
-    } else {
-      core.info(`There is no gateway with name: ${gatewayName}. Creating a new one.`)
-      gateway = await createGateway(session, gatewayService, folderId, gatewayName, gatewaySpec)
-      core.info(`Gateway successfully created. Id: ${gateway.id}`)
+        if (gatewaySpecFile) {
+            gatewaySpec = fs.readFileSync(gatewaySpecFile).toString()
+        }
+        core.info(`Folder ID: ${folderId}, gateway name: ${gatewayName}`)
+
+        const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
+        const session = new Session({ serviceAccountJson })
+        const gatewayService = session.client(serviceClients.ApiGatewayServiceClient)
+
+        const gatewaysResponse = await findGatewayByName(gatewayService, folderId, gatewayName)
+        let gateway: ApiGateway
+        if (gatewaysResponse.apiGateways.length) {
+            gateway = gatewaysResponse.apiGateways[0]
+            core.info(`Gateway with name: ${gatewayName} already exists and has id: ${gateway.id}`)
+            gateway = await updateGatewaySpec(session, gatewayService, gateway.id, gatewaySpec)
+            core.info(`Gateway updated successfully`)
+        } else {
+            core.info(`There is no gateway with name: ${gatewayName}. Creating a new one.`)
+            gateway = await createGateway(session, gatewayService, folderId, gatewayName, gatewaySpec)
+            core.info(`Gateway successfully created. Id: ${gateway.id}`)
+        }
+        core.setOutput('id', gateway.id)
+        core.setOutput('domain', gateway.domain)
+    } catch (error) {
+        if (error instanceof Error) {
+            core.error(error)
+            core.setFailed(error.message)
+        }
     }
-    core.setOutput('id', gateway.id)
-    core.setOutput('domain', gateway.domain)
-  } catch (error) {
-    if (error instanceof Error) {
-      core.error(error)
-      core.setFailed(error.message)
-    }
-  }
 }
-
-run()
