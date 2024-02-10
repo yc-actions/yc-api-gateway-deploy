@@ -1,6 +1,0 @@
-version: '3.7'
-services:
-  logs:
-    container_name: logs-app
-    image: {{ env.IMAGE_URL }}
-    restart: always
