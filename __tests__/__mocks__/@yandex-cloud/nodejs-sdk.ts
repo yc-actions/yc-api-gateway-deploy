@@ -42,7 +42,10 @@ const ApiGatewayServiceMock = {
         if (createGatewayFail) {
             return Operation.fromJSON({
                 id: 'operationid',
-                error: {},
+                error: {
+                    code: 400,
+                    message: 'Failed to create gateway'
+                },
                 done: true
             })
         }
@@ -63,7 +66,10 @@ const ApiGatewayServiceMock = {
         if (updateGatewayFail) {
             return Operation.fromJSON({
                 id: 'operationid',
-                error: {},
+                error: {
+                    code: 400,
+                    message: 'Failed to update gateway'
+                },
                 done: true
             })
         }
@@ -99,7 +105,14 @@ sdk.Session = jest.fn().mockImplementation(() => ({
     }
 }))
 
-sdk.waitForOperation = jest.fn().mockImplementation((op: Operation) => op)
+sdk.waitForOperation = jest.fn().mockImplementation(async (op: Operation) => {
+    return new Promise((resolve, reject) => {
+        if (op.error) {
+            reject(op)
+        }
+        resolve(op)
+    })
+})
 sdk.decodeMessage = decodeMessage
 
 sdk.__setApiGatewayList = (value: ApiGateway[]) => {

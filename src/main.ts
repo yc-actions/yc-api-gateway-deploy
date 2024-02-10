@@ -44,10 +44,11 @@ async function createGateway(
         openapiSpec: gatewaySpec
     })
 
-    const operation = await gatewayService.create(request)
-    await waitForOperation(operation, session)
+    let operation = await gatewayService.create(request)
+
+    operation = await waitForOperation(operation, session)
     if (!operation.response) {
-        throw new Error(operation.error?.message || 'Failed to create gateway')
+        throw new Error('Empty operation response')
     }
     return decodeMessage<ApiGateway>(operation.response)
 }
@@ -66,10 +67,11 @@ async function updateGatewaySpec(
         })
     })
 
-    const operation = await gatewayService.update(request)
-    await waitForOperation(operation, session)
+    let operation = await gatewayService.update(request)
+
+    operation = await waitForOperation(operation, session)
     if (!operation.response) {
-        throw new Error(operation.error?.message || 'Failed to update gateway')
+        throw new Error('Empty operation response')
     }
     return decodeMessage<ApiGateway>(operation.response)
 }
@@ -119,9 +121,7 @@ export async function run(): Promise<void> {
         core.setOutput('id', gateway.id)
         core.setOutput('domain', gateway.domain)
     } catch (error) {
-        if (error instanceof Error) {
-            core.error(error)
-            core.setFailed(error.message)
-        }
+        core.error(`${error}`)
+        core.setFailed(`${error}`)
     }
 }
