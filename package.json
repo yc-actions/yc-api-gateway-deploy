@@ -1,6 +1,6 @@
 {
   "name": "yc-actions-yc-api-gateway-deploy",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "GitHub Action to deploy API Gateway to Yandex Cloud",
   "main": "lib/main.js",
   "scripts": {
