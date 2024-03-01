@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
-import { decodeMessage, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
+import { decodeMessage, errors, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
 import { FieldMask } from '@yandex-cloud/nodejs-sdk/dist/generated/google/protobuf/field_mask'
 import { ApiGateway } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/apigateway/v1/apigateway'
 import {
@@ -121,7 +121,11 @@ export async function run(): Promise<void> {
         core.setOutput('id', gateway.id)
         core.setOutput('domain', gateway.domain)
     } catch (error) {
-        core.error(`${error}`)
+        if (error instanceof errors.ApiError) {
+            core.error(`${error.message}\nx-request-id: ${error.requestId}\nx-server-trace-id: ${error.serverTraceId}`)
+        } else {
+            core.error(`${error}`)
+        }
         core.setFailed(`${error}`)
     }
 }
