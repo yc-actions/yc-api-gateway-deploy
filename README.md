@@ -45,7 +45,7 @@ Additionally, you may need to grant the following optional roles depending on yo
 
 ### Runtime permissions
 
-The service account provided to gateway specification via `service-account` parameter must have the following roles,
+The service account provided to gateway specification via `service_account_id` parameter must have the following roles,
 depending on what extension they are used in:
 
 | Required Role                            | Extension               | Required For                                       |
