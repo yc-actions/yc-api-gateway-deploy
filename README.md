@@ -31,9 +31,32 @@ See [action.yml](action.yml) for the full documentation for this action's inputs
 
 ## Permissions
 
-This action requires the following minimum set of permissions:
+### Deploy time permissions
 
-TODO: add permission set
+To perform this action, the service account on behalf of which we are acting must have
+the `api-gateway.editor` role or higher.
+
+Additionally, you may need to grant the following optional roles depending on your specific needs:
+
+| Optional Role              | Required For                                                                           |
+|----------------------------|----------------------------------------------------------------------------------------|
+| `iam.serviceAccounts.user` | Providing the service account ID in parameters, ensuring access to the service account |
+| `vpc.user`                 | Deploying the function in a VPC with a specified network ID                            |
+
+### Runtime permissions
+
+The service account provided to gateway specification via `service-account` parameter must have the following roles,
+depending on what extension they are used in:
+
+| Required Role                            | Extension               | Required For                                       |
+|------------------------------------------|-------------------------|----------------------------------------------------|
+| `functions.functionInvoker`              | `cloud_functions`       | To invoke the function                             |
+| `serverless-containers.containerInvoker` | `serverless_containers` | To invoke the container                            |
+| `storage.viewer`                         | `object_storage`        | To read objects from private Object Storage Bucket |
+| `datasphere.user`                        | `cloud_datasphere`      | To call DataSphere inference endpoint              |
+| `yds.writer`                             | `cloud_datastreams`     | To put message into Yandex DataStream              |
+| `ymq.writer`                             | `cloud_ymq`             | To put message into Yandex Message Queue           |
+| `ydb.editor`                             | `cloud_ydb`             | To execute queries in YDB                          |
 
 ## License Summary
 
