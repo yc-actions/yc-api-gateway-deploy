@@ -1,5 +1,5 @@
-import * as core from '@actions/core'
-import * as github from '@actions/github'
+import { info, getInput, setFailed, setOutput, error } from '@actions/core'
+import { context } from '@actions/github'
 
 import { decodeMessage, errors, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
 import { FieldMask } from '@yandex-cloud/nodejs-sdk/dist/generated/google/protobuf/field_mask'
@@ -12,7 +12,7 @@ import {
     UpdateApiGatewayRequest
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/apigateway/v1/apigateway_service'
 import { WrappedServiceClientType } from '@yandex-cloud/nodejs-sdk/dist/types'
-import * as fs from 'fs'
+import { readFileSync } from 'fs'
 import { fromServiceAccountJsonFile } from './service-account-json'
 
 async function findGatewayByName(
@@ -36,7 +36,7 @@ async function createGateway(
     gatewayName: string,
     gatewaySpec: string
 ): Promise<ApiGateway> {
-    const repo = github.context.repo
+    const repo = context.repo
     const request = CreateApiGatewayRequest.fromPartial({
         folderId,
         name: gatewayName,
@@ -78,29 +78,29 @@ async function updateGatewaySpec(
 
 export async function run(): Promise<void> {
     try {
-        core.info(`start`)
-        const ycSaJsonCredentials = core.getInput('yc-sa-json-credentials', {
+        info(`start`)
+        const ycSaJsonCredentials = getInput('yc-sa-json-credentials', {
             required: true
         })
 
-        const folderId: string = core.getInput('folder-id', {
+        const folderId: string = getInput('folder-id', {
             required: true
         })
-        const gatewayName: string = core.getInput('gateway-name', {
+        const gatewayName: string = getInput('gateway-name', {
             required: true
         })
-        const gatewaySpecFile = core.getInput('spec-file')
-        let gatewaySpec = core.getInput('spec')
+        const gatewaySpecFile = getInput('spec-file')
+        let gatewaySpec = getInput('spec')
 
         if (!gatewaySpec && !gatewaySpecFile) {
-            core.setFailed(new Error('Either spec or spec-file input must be provided'))
+            setFailed(new Error('Either spec or spec-file input must be provided'))
             return
         }
 
         if (gatewaySpecFile) {
-            gatewaySpec = fs.readFileSync(gatewaySpecFile).toString()
+            gatewaySpec = readFileSync(gatewaySpecFile).toString()
         }
-        core.info(`Folder ID: ${folderId}, gateway name: ${gatewayName}`)
+        info(`Folder ID: ${folderId}, gateway name: ${gatewayName}`)
 
         const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
         const session = new Session({ serviceAccountJson })
@@ -110,22 +110,22 @@ export async function run(): Promise<void> {
         let gateway: ApiGateway
         if (gatewaysResponse.apiGateways.length) {
             gateway = gatewaysResponse.apiGateways[0]
-            core.info(`Gateway with name: ${gatewayName} already exists and has id: ${gateway.id}`)
+            info(`Gateway with name: ${gatewayName} already exists and has id: ${gateway.id}`)
             gateway = await updateGatewaySpec(session, gatewayService, gateway.id, gatewaySpec)
-            core.info(`Gateway updated successfully`)
+            info(`Gateway updated successfully`)
         } else {
-            core.info(`There is no gateway with name: ${gatewayName}. Creating a new one.`)
+            info(`There is no gateway with name: ${gatewayName}. Creating a new one.`)
             gateway = await createGateway(session, gatewayService, folderId, gatewayName, gatewaySpec)
-            core.info(`Gateway successfully created. Id: ${gateway.id}`)
+            info(`Gateway successfully created. Id: ${gateway.id}`)
         }
-        core.setOutput('id', gateway.id)
-        core.setOutput('domain', gateway.domain)
-    } catch (error) {
-        if (error instanceof errors.ApiError) {
-            core.error(`${error.message}\nx-request-id: ${error.requestId}\nx-server-trace-id: ${error.serverTraceId}`)
+        setOutput('id', gateway.id)
+        setOutput('domain', gateway.domain)
+    } catch (err) {
+        if (err instanceof errors.ApiError) {
+            error(`${err.message}\nx-request-id: ${err.requestId}\nx-server-trace-id: ${err.serverTraceId}`)
         } else {
-            core.error(`${error}`)
+            error(`${err}`)
         }
-        core.setFailed(`${error}`)
+        setFailed(`${err}`)
     }
 }
