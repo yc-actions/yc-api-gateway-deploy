@@ -1,4 +1,5 @@
-import { info, getInput, setFailed, setOutput, error } from '@actions/core'
+import axios from 'axios'
+import { error, getIDToken, getInput, info, setFailed, setOutput } from '@actions/core'
 import { context } from '@actions/github'
 
 import { decodeMessage, errors, serviceClients, Session, waitForOperation } from '@yandex-cloud/nodejs-sdk'
@@ -11,7 +12,7 @@ import {
     ListApiGatewayResponse,
     UpdateApiGatewayRequest
 } from '@yandex-cloud/nodejs-sdk/dist/generated/yandex/cloud/serverless/apigateway/v1/apigateway_service'
-import { WrappedServiceClientType } from '@yandex-cloud/nodejs-sdk/dist/types'
+import { SessionConfig, WrappedServiceClientType } from '@yandex-cloud/nodejs-sdk/dist/types'
 import { readFileSync } from 'fs'
 import { fromServiceAccountJsonFile } from './service-account-json'
 
@@ -79,9 +80,28 @@ async function updateGatewaySpec(
 export async function run(): Promise<void> {
     try {
         info(`start`)
-        const ycSaJsonCredentials = getInput('yc-sa-json-credentials', {
-            required: true
-        })
+        let sessionConfig: SessionConfig = {}
+        const ycSaJsonCredentials = getInput('yc-sa-json-credentials')
+        const ycIamToken = getInput('yc-iam-token')
+        const ycSaId = getInput('yc-sa-id')
+        if (ycSaJsonCredentials !== '') {
+            const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
+            info('Parsed Service account JSON')
+            sessionConfig = { serviceAccountJson }
+        } else if (ycIamToken !== '') {
+            sessionConfig = { iamToken: ycIamToken }
+            info('Using IAM token')
+        } else if (ycSaId !== '') {
+            const ghToken = await getIDToken()
+            if (!ghToken) {
+                throw new Error('No credentials provided')
+            }
+            const saToken = await exchangeToken(ghToken, ycSaId)
+            sessionConfig = { iamToken: saToken }
+        } else {
+            throw new Error('No credentials')
+        }
+        const session = new Session(sessionConfig)
 
         const folderId: string = getInput('folder-id', {
             required: true
@@ -102,8 +122,6 @@ export async function run(): Promise<void> {
         }
         info(`Folder ID: ${folderId}, gateway name: ${gatewayName}`)
 
-        const serviceAccountJson = fromServiceAccountJsonFile(JSON.parse(ycSaJsonCredentials))
-        const session = new Session({ serviceAccountJson })
         const gatewayService = session.client(serviceClients.ApiGatewayServiceClient)
 
         const gatewaysResponse = await findGatewayByName(gatewayService, folderId, gatewayName)
@@ -128,4 +146,31 @@ export async function run(): Promise<void> {
         }
         setFailed(`${err}`)
     }
+}
+
+async function exchangeToken(token: string, saId: string): Promise<string> {
+    info(`Exchanging token for service account ${saId}`)
+    const res = await axios.post(
+        'https://auth.yandex.cloud/oauth/token',
+        {
+            grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+            requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+            audience: saId,
+            subject_token: token,
+            subject_token_type: 'urn:ietf:params:oauth:token-type:id_token'
+        },
+        {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        }
+    )
+    if (res.status !== 200) {
+        throw new Error(`Failed to exchange token: ${res.status} ${res.statusText}`)
+    }
+    if (!res.data.access_token) {
+        throw new Error(`Failed to exchange token: ${res.data.error} ${res.data.error_description}`)
+    }
+    info(`Token exchanged successfully`)
+    return res.data.access_token
 }
