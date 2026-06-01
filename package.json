@@ -14,7 +14,8 @@
     "package:watch": "npm run package -- --watch",
     "test": "jest",
     "all": "npm run format:write && npm run lint && npm run test && npm run coverage && npm run package",
-    "git-tag": "git tag v`cat package.json | jq -r '.version' | awk -F. '{print $1}'` -f &&  git tag v`cat package.json | jq -r '.version'` -f"
+    "git-tag": "git tag v`cat package.json | jq -r '.version' | awk -F. '{print $1}'` -f &&  git tag v`cat package.json | jq -r '.version'` -f",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -63,7 +64,7 @@
     "@actions/github": "^6.0.1",
     "@grpc/grpc-js": "^1.14.1",
     "@yandex-cloud/nodejs-sdk": "^2.9.0",
-    "axios": "1.13.2",
+    "axios": "1.16.1",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
@@ -80,15 +81,31 @@
     "eslint-plugin-github": "^6.0.0",
     "eslint-plugin-jest": "^29.13.0",
     "eslint-plugin-jsonc": "^2.21.0",
-    "eslint-plugin-prettier": "^5.5.5",
-    "globals": "^17.0.0",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.5.0",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "js-yaml": "^4.1.1",
     "make-coverage-badge": "^1.2.0",
-    "prettier": "3.6.2",
+    "prettier": "3.8.3",
     "prettier-eslint": "^16.4.2",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "prettier-eslint": {
+      "@typescript-eslint/parser": {
+        "@typescript-eslint/typescript-estree": {
+          "minimatch": "^9.0.7"
+        }
+      }
+    },
+    "@actions/github": {
+      "undici": "^6.26.0"
+    },
+    "@actions/http-client": {
+      "undici": "^6.26.0"
+    }
   },
   "engines": {
     "node": ">=24"
