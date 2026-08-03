@@ -63,7 +63,7 @@
     "@actions/core": "^2.0.3",
     "@actions/github": "^7.0.0",
     "@grpc/grpc-js": "^1.14.1",
-    "@yandex-cloud/nodejs-sdk": "^2.9.0",
+    "@yandex-cloud/nodejs-sdk": "^3.2.0",
     "axios": "^1.18.1",
     "yaml": "^2.8.2"
   },
